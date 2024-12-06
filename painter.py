@@ -7,11 +7,13 @@ start_x = None
 start_y = None
 shape_mode = False
 text_mode = False
+line_mode = False
 current_shape = None
 brush_mode = True
 actions = []
 color_palette = None
 canvas_img = None
+
 
 # 마우스 이벤트 콜백 함수
 def paint(event):
@@ -19,33 +21,54 @@ def paint(event):
     brush_size = brush_slider.get()
     x1, y1 = (event.x - brush_size), (event.y - brush_size)
     x2, y2 = (event.x + brush_size), (event.y + brush_size)
+
     if eraser_on.get():
         canvas.create_oval(x1, y1, x2, y2, fill='white', outline='white')
+        draw.ellipse([x1, y1, x2, y2], fill='white', outline='white')
+        actions.append(('oval', (x1, y1, x2, y2), 'white'))
     elif shape_mode:
         if current_shape == "Rectangle":
             canvas.create_rectangle(start_x, start_y, event.x, event.y, outline=color.get())
+            draw.rectangle([start_x, start_y, event.x, event.y], outline=color.get())
+            actions.append(('rectangle', (start_x, start_y, event.x, event.y), color.get()))
         elif current_shape == "Oval":
             canvas.create_oval(start_x, start_y, event.x, event.y, outline=color.get())
+            draw.ellipse([start_x, start_y, event.x, event.y], outline=color.get())
+            actions.append(('oval', (start_x, start_y, event.x, event.y), color.get()))
     elif text_mode:
         add_text(event)
-    else:
+    elif brush_mode:
         canvas.create_oval(x1, y1, x2, y2, fill=color.get(), outline=color.get())
+        draw.ellipse([x1, y1, x2, y2], fill=color.get(), outline=color.get())
+        actions.append(('oval', (x1, y1, x2, y2), color.get()))
+    elif line_mode:
+        if start_x is not None and start_y is not None:
+            canvas.create_line(start_x, start_y, event.x, event.y, fill=color.get(), width=brush_size)
+            draw.line([start_x, start_y, event.x, event.y], fill=color.get(), width=brush_size)
+            actions.append(('line', (start_x, start_y, event.x, event.y), color.get(), brush_size))
+        start_x, start_y = event.x, event.y
+
 
 # 텍스트 삽입 함수
 def add_text(event):
     text = simpledialog.askstring("텍스트 입력", "추가할 텍스트를 입력하세요:")
     if text:
-        canvas.create_text(event.x, event.y, text=text, fill=color.get(), font=('Helvetica', 16))
+        x, y = event.x, event.y
+        canvas.create_text(x, y, text=text, fill=color.get(), font=('Helvetica', 16))
+        draw.text((x, y), text, fill=color.get())
+        actions.append(('text', (x, y), text, color.get()))
 
-# 그림판 초기화 함수
+
+# 그림판 초기화 함수( 메인 그림판 화면)
 def initialize_paint():
-    global canvas, brush_slider, color, eraser_on, image, draw
+    global canvas, brush_slider, color, eraser_on, image, draw, shape_button, start_x, start_y, text_button, color_palette
 
     # 기존 창 숨기기
     pp.withdraw()
+    pp.resizable(False, False)  # 창 크기 조절 불가
 
     paint_window = Toplevel(pp)
-    paint_window.title("그림판")
+    paint_window.title("P.P 그림판")
 
     canvas = Canvas(paint_window, width=800, height=500, bg='white')
     canvas.pack()
@@ -59,66 +82,228 @@ def initialize_paint():
     eraser_button = Checkbutton(paint_window, text="지우개", variable=eraser_on)
     eraser_button.pack(side=LEFT)
 
-    Button(paint_window, text="색 선택", command=choose_color).pack(side=LEFT)
-    Button(paint_window, text="텍스트 추가", command=lambda: activate_mode("text")).pack(side=LEFT)
-    Button(paint_window, text="도형 (사각형)", command=lambda: activate_mode("rectangle")).pack(side=LEFT)
-    Button(paint_window, text="도형 (타원)", command=lambda: activate_mode("oval")).pack(side=LEFT)
+    brush_button = Menubutton(paint_window, text="브러시 선택", relief=RAISED)
+    brush_menu = Menu(brush_button, tearoff=0)
+    brush_menu.add_radiobutton(label="점", command=activate_brush_mode)
+    brush_menu.add_radiobutton(label="선", command=activate_line_mode)
+    brush_button.pack(side=LEFT)
+    brush_button.config(menu=brush_menu)
 
-    Button(paint_window, text="저장", command=save_file).pack(side=RIGHT)
-    Button(paint_window, text="불러오기", command=load_file).pack(side=RIGHT)
+    color = StringVar()
+    color.set('black')
+    color_button = Button(paint_window, text="색 선택", command=choose_color)
+    color_button.pack(side=LEFT)
+    # 색상 팔레트 표시
+    color_palette = Label(paint_window, text="●", fg=color.get(), font=('Helvetica', 24))
+    color_palette.pack(side=LEFT)
 
+    load_button = Button(paint_window, text="불러오기", command=load_file)
+    load_button.pack(side=RIGHT)
+
+    save_button = Button(paint_window, text="저장", command=save_file)
+    save_button.pack(side=RIGHT)
+
+    reset_button = Button(paint_window, text="리셋", command=reset_canvas)
+    reset_button.pack(side=RIGHT)
+
+    undo_button = Button(paint_window, text="뒤로 가기", command=undo)
+    undo_button.pack(side=LEFT)
+
+    shape_button = Menubutton(paint_window, text="도형 선택", relief=RAISED)
+    shape_menu = Menu(shape_button, tearoff=0)
+    shape_menu.add_radiobutton(label="Rectangle", command=lambda: set_shape_mode("Rectangle"))
+    shape_menu.add_radiobutton(label="Oval", command=lambda: set_shape_mode("Oval"))
+    shape_button.pack(side=LEFT)
+    shape_button.config(menu=shape_menu)
+
+    text_button = Button(paint_window, text="텍스트 추가", command=activate_text_mode)
+    text_button.pack(side=LEFT)
+
+    image = Image.new("RGB", (800, 500), 'white')
+    draw = ImageDraw.Draw(image)
+    # 바인딩
     canvas.bind("<B1-Motion>", paint)
-    canvas.bind("<Button-1>", lambda event: set_start(event))
+    canvas.bind("<Button-1>", start)
+
+    # 단축키 바인딩
+    paint_window.bind("<Control-z>", lambda event: undo())
+    paint_window.bind("<Control-s>", lambda event: save_file())
+    paint_window.bind("<Control-o>", lambda event: load_file())
+
+
+def start(event):
+    global start_x, start_y, shape_mode
+    start_x, start_y = event.x, event.y
+    if shape_mode:
+        canvas.bind("<B1-Motion>", draw_shape)
+
 
 # 색상 선택 함수
 def choose_color():
     new_color = colorchooser.askcolor(color=color.get())[1]
     if new_color:
         color.set(new_color)
+        color_palette.config(fg=new_color)
 
-# 모드 활성화
-def activate_mode(mode):
-    global text_mode, shape_mode, current_shape
-    text_mode = mode == "text"
-    shape_mode = mode in ["rectangle", "oval"]
-    current_shape = mode
 
-# 마우스 시작 좌표 설정
-def set_start(event):
-    global start_x, start_y
-    start_x, start_y = event.x, event.y
+# 뒤로 가기 함수
+def undo():
+    if actions:
+        last_action = actions.pop()
+        image.paste(Image.new("RGB", (800, 500), 'white'), (0, 0))
+        draw = ImageDraw.Draw(image)
+        canvas.delete("all")
+        for action in actions:
+            if action[0] == 'oval':
+                canvas.create_oval(action[1], fill=action[2], outline=action[2])
+                draw.ellipse(action[1], fill=action[2], outline=action[2])
+            elif action[0] == 'rectangle':
+                canvas.create_rectangle(action[1], outline=action[2])
+                draw.rectangle(action[1], outline=action[2])
+            elif action[0] == 'text':
+                canvas.create_text(action[1], text=action[2], fill=action[3], font=('Helvetica', 16))
+                draw.text(action[1], action[2], fill=action[3])
+            elif action[0] == 'line':
+                canvas.create_line(action[1], fill=action[2], width=action[3])
+                draw.line(action[1], fill=action[2], width=action[3])
+
+
+# 텍스트 모드 함수
+def activate_text_mode():
+    global text_mode, shape_mode, brush_mode, line_mode
+    text_mode = True
+    shape_mode = False
+    brush_mode = False
+    line_mode = False
+
+
+# 도형 그리기 함수
+def shapeset_shape_mode():
+    global shape_mode, text_mode, brush_mode, line_mode, current_shape
+    shape_mode = True
+    text_mode = False
+    brush_mode = False
+    line_mode = False
+    current_shape = shape
+
+
+# 브러시 점  모드 함수
+def activate_brush_mode():
+    global shape_mode, text_mode, brush_mode, line_mode
+    shape_mode = False
+    text_mode = False
+    brush_mode = True
+    line_mode = False
+
+
+# 브러시 선 모드 함수
+def activate_line_mode():
+    global shape_mode, text_mode, brush_mode, line_mode
+    shape_mode = False
+    text_mode = False
+    brush_mode = False
+    line_mode = True
+
+
+# 리셋 함수
+def reset_canvas():
+    global actions, image, draw
+    canvas.delete("all")
+    actions = []
+    image = Image.new("RGB", (800, 500), 'white')
+    draw = ImageDraw.Draw(image)
+
+
+# 도움말 표시 함수 (도움말 화면)
+def show_help():
+    help_window = Toplevel(pp)
+    help_window.title("P.P 도움말")
+    help_window.geometry("600x700")  # 창 크기 설정
+    help_window.resizable(False, False)  # 창 크기 조절 불가
+
+    # 도움말 이미지 로드
+    help_image_path = r"C:\Project\giraffe\images\help.png"  # 도움말 이미지 경로를 설정
+    help_image = Image.open(help_image_path)
+    help_image = help_image.resize((600, 700), Image.LANCZOS)  # 이미지 크기 조절
+    help_img = ImageTk.PhotoImage(help_image)
+
+    # 이미지 라벨 생성 및 배치
+    image_label = Label(help_window, image=help_img)
+    image_label.image = help_img  # 이미지를 전역 변수로 유지
+    image_label.pack(pady=10)
+
 
 # 파일 저장 함수
 def save_file():
     file_path = filedialog.asksaveasfilename(defaultextension='.png', filetypes=[('PNG files', '*.png')])
     if file_path:
-        print(f"저장: {file_path}")
+        image.save(file_path)
+
 
 # 파일 불러오기 함수
 def load_file():
     file_path = filedialog.askopenfilename(filetypes=[('PNG files', '*.png')])
     if file_path:
-        print(f"불러오기: {file_path}")
+        try:
+            loaded_image = Image.open(file_path)
+            image.paste(loaded_image)
+            canvas_image = ImageTk.PhotoImage(image)
+            canvas.create_image(0, 0, image=canvas_image, anchor=NW)
+            # 저장하여 다시 사용할 수 있도록 전역 변수 설정
+            global canvas_img
+            canvas_img = canvas_image
+        except Exception as e:
+            print("파일을 열 수 없습니다:", e)
 
-# 초기화 함수
+
+# 초기화 함수( 첫 화면)
 def initialize():
     global pp
+    global bg_image
+    global start_img, help_img
 
     # Tkinter 창 생성
     pp = Tk()
     pp.title("P.P 시작 화면")
-    pp.geometry("800x600")
-    pp.configure(bg="lightblue")  # 배경색 설정
+    pp.geometry("800x600")  # 창 크기 설정
+    pp.resizable(False, False)  # 창 크기 조절 불가
 
-    # 시작 버튼
-    start_button = Button(pp, text="그림판 시작", command=initialize_paint, bg="white", fg="black", font=("Helvetica", 16))
-    start_button.place(x=320, y=250, width=160, height=50)
+    # 배경 이미지 로드
+    bg_image_path = r"C:\Project\giraffe\images\pp1.png"  # 배경 이미지 경로를 설정
+    bg_image = Image.open(bg_image_path)
+    bg_image = bg_image.resize((800, 600), Image.LANCZOS)
+    bg_image = ImageTk.PhotoImage(bg_image)
 
-    # 종료 버튼
-    quit_button = Button(pp, text="종료", command=pp.quit, bg="white", fg="black", font=("Helvetica", 16))
-    quit_button.place(x=320, y=320, width=160, height=50)
+    # 캔버스 생성 및 배경 이미지 표시
+    canvas = Canvas(pp, width=800, height=600)
+    canvas.pack(fill=BOTH, expand=True)
+    canvas.create_image(0, 0, image=bg_image, anchor=NW)
 
+    # 시작 버튼 이미지 로드 및 크기 조절
+    start_image_path = r"C:\Project\giraffe\images\start_button.png"  # 시작 버튼 이미지 경로를 설정
+    start_image = Image.open(start_image_path)
+    start_image = start_image.resize((199, 61), Image.LANCZOS)  # 버튼 크기 조절
+    start_img = ImageTk.PhotoImage(start_image)
+
+    # 도움말 버튼 이미지 로드 및 크기 조절
+    help_image_path = r"C:\Project\giraffe\images\help_button.png"  # 도움말 버튼 이미지 경로를 설정
+    help_image = Image.open(help_image_path)
+    help_image = help_image.resize((199, 61), Image.LANCZOS)  # 버튼 크기 조절
+    help_img = ImageTk.PhotoImage(help_image)
+
+    # 시작 버튼 생성
+    start_button = Button(pp, image=start_img, command=initialize_paint, bd=0)
+    start_button.image = start_img  # 이미지를 전역 변수로 유지
+    start_button.place(x=300, y=440)  # 버튼 위치 설정
+
+    # 도움말 버튼 생성
+    help_button = Button(pp, image=help_img, command=show_help, bd=0)
+    help_button.image = help_img  # 이미지를 전역 변수로 유지
+    help_button.place(x=300, y=510)  # 버튼 위치 설정
+
+    # 루프 시작
     pp.mainloop()
+
 
 if __name__ == "__main__":
     initialize()
