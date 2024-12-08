@@ -1,47 +1,50 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template, jsonify
 import subprocess
 import os
+import sqlite3
 
 app = Flask(__name__)
 
+def get_db_connection():
+    conn = sqlite3.connect('users.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
 @app.route("/")
 def home():
-    """
-    홈 페이지 라우트: templates/login.html을 렌더링합니다.
-    """
-    return render_template("login.html")  # templates/login.html 파일 렌더링
+    return render_template("login.html")
 
 @app.route("/login", methods=["POST"])
 def login():
-    """
-    로그인 처리 라우트: POST 요청으로 받은 JSON 데이터를 확인하여
-    유효한 사용자(admin/1234)인지 검증하고, 성공 시 painter.py 실행.
-    """
     try:
-        # 요청 데이터 가져오기
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-        # 로그인 검증
-        if username == "admin" and password == "1234":
+        if not username or not password:
+            return jsonify({"message": "아이디와 비밀번호를 입력하세요."}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
             # painter.py 실행
             painter_path = os.path.join(os.getcwd(), "painter.py")
             if not os.path.exists(painter_path):
-                return f"painter.py 파일이 존재하지 않습니다: {painter_path}", 500
+                return jsonify({"message": f"painter.py 파일이 존재하지 않습니다: {painter_path}"}), 500
 
             try:
-                subprocess.Popen(["python", painter_path])
-                return "로그인 성공! Tkinter 창이 열립니다.", 200
+                subprocess.Popen([r"C:\Users\Gram13\AppData\Local\Programs\Python\Python312\python.exe", painter_path])
+                return jsonify({"message": "로그인 성공! Tkinter 창이 열립니다."}), 200
             except Exception as e:
-                return f"Tkinter 실행 오류: {str(e)}", 500
+                return jsonify({"message": f"Tkinter 실행 오류: {str(e)}"}), 500
         else:
-            return "아이디 또는 비밀번호가 잘못되었습니다.", 401
+            return jsonify({"message": "아이디 또는 비밀번호가 잘못되었습니다."}), 401
 
     except Exception as e:
-        return f"요청 처리 중 오류가 발생했습니다: {str(e)}", 500
-
+        return jsonify({"message": f"요청 처리 중 오류가 발생했습니다: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    # Flask 애플리케이션 실행
     app.run(debug=True)

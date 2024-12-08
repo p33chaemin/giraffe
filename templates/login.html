@@ -1,25 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-    <title>Login Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 페이지</title>
     <style>
         body {
-            background-color: #90ee90; /* 연두색 배경 */
+            background-color: #90ee90;
             display: flex;
             justify-content: center;
-            align-items: flex-end; /* 화면 아래쪽으로 정렬 */
+            align-items: flex-end;
             height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
         }
         .logo {
-            position: absolute; /* 로고를 독립적으로 배치 */
-            top: 20px; /* 화면 상단에서 여백 */
+            position: absolute;
+            top: 20px;
             text-align: center;
             width: 100%;
         }
         .logo img {
-            max-width: 300px; /* 로고 크기를 3배 확대 */
+            max-width: 300px;
             max-height: 300px;
             width: auto;
             height: auto;
@@ -29,12 +31,11 @@
         .container {
             text-align: center;
             background-color: white;
-            padding: 10px;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 500px; /* 가로로 길게 조정 */
-            margin-bottom: 50px; /* 아래로 내려오도록 간격 조정 */
-            margin-top: 100px;
+            width: 400px;
+            margin-bottom: 50px;
         }
         form {
             display: flex;
@@ -69,25 +70,23 @@
             const password = document.getElementById("password").value;
             const message = document.getElementById("message");
 
-            // 서버에 POST 요청 보내기
             try {
                 const response = await fetch("/login", {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/x-www-form-urlencoded"
                     },
-                    body: JSON.stringify({ username, password })
+                    body: `username=${username}&password=${password}`
                 });
 
-                const result = await response.text();
+                const result = await response.json();
 
-                // 메시지 업데이트
                 if (response.ok) {
                     message.style.color = "green";
-                    message.textContent = result;
+                    message.textContent = result.message;
                 } else {
                     message.style.color = "red";
-                    message.textContent = result;
+                    message.textContent = result.message;
                 }
             } catch (error) {
                 message.style.color = "red";
@@ -98,11 +97,10 @@
 </head>
 <body>
     <div class="logo">
-    <img src="/static/images/main_frog.png" alt="Logo">
+        <img src="/static/images/main_frog.png" alt="Logo">
     </div>
     <div class="container">
         <form onsubmit="handleLogin(event)">
-            <!-- 메시지가 표시될 영역 -->
             <div id="message"></div>
             <label for="username">아이디:</label>
             <input type="text" id="username" name="username" required>
