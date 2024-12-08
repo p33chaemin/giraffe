@@ -64,11 +64,11 @@ def initialize_paint():
     global canvas, brush_slider, color, eraser_on, image, draw, shape_button, start_x, start_y, text_button, color_palette
 
     # 기존 창 숨기기
-    pp.withdraw()
-    pp.resizable(False, False)  # 창 크기 조절 불가
+    ggp.withdraw()
+    ggp.resizable(False, False)  # 창 크기 조절 불가
 
-    paint_window = Toplevel(pp)
-    paint_window.title("P.P 그림판")
+    paint_window = Toplevel(ggp)
+    paint_window.title("잘그린기린 그림판")
 
     canvas = Canvas(paint_window, width=800, height=500, bg='white')
     canvas.pack()
@@ -216,8 +216,8 @@ def reset_canvas():
 
 # 도움말 표시 함수 (도움말 화면)
 def show_help():
-    help_window = Toplevel(pp)
-    help_window.title("P.P 도움말")
+    help_window = Toplevel(ggp)
+    help_window.title("잘그린기린 도움말")
     help_window.geometry("600x700")  # 창 크기 설정
     help_window.resizable(False, False)  # 창 크기 조절 불가
 
@@ -258,24 +258,24 @@ def load_file():
 
 # 초기화 함수( 첫 화면)
 def initialize():
-    global pp
+    global ggp
     global bg_image
     global start_img, help_img
 
     # Tkinter 창 생성
-    pp = Tk()
-    pp.title("P.P 시작 화면")
-    pp.geometry("800x600")  # 창 크기 설정
-    pp.resizable(False, False)  # 창 크기 조절 불가
+    ggp = Tk()
+    ggp.title("잘그린기린그림 시작 화면")
+    ggp.geometry("800x600")  # 창 크기 설정
+    ggp.resizable(False, False)  # 창 크기 조절 불가
 
     # 배경 이미지 로드
-    bg_image_path = r"C:\Project\giraffe\images\pp1.png"  # 배경 이미지 경로를 설정
+    bg_image_path = r"C:\Project\giraffe\images\ggp.png"  # 배경 이미지 경로를 설정
     bg_image = Image.open(bg_image_path)
     bg_image = bg_image.resize((800, 600), Image.LANCZOS)
     bg_image = ImageTk.PhotoImage(bg_image)
 
     # 캔버스 생성 및 배경 이미지 표시
-    canvas = Canvas(pp, width=800, height=600)
+    canvas = Canvas(ggp, width=800, height=600)
     canvas.pack(fill=BOTH, expand=True)
     canvas.create_image(0, 0, image=bg_image, anchor=NW)
 
@@ -292,17 +292,17 @@ def initialize():
     help_img = ImageTk.PhotoImage(help_image)
 
     # 시작 버튼 생성
-    start_button = Button(pp, image=start_img, command=initialize_paint, bd=0)
+    start_button = Button(ggp, image=start_img, command=initialize_paint, bd=0)
     start_button.image = start_img  # 이미지를 전역 변수로 유지
     start_button.place(x=300, y=440)  # 버튼 위치 설정
 
     # 도움말 버튼 생성
-    help_button = Button(pp, image=help_img, command=show_help, bd=0)
+    help_button = Button(ggp, image=help_img, command=show_help, bd=0)
     help_button.image = help_img  # 이미지를 전역 변수로 유지
     help_button.place(x=300, y=510)  # 버튼 위치 설정
 
     # 루프 시작
-    pp.mainloop()
+    ggp.mainloop()
 
 
 if __name__ == "__main__":
