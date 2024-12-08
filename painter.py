@@ -68,7 +68,7 @@ def initialize_paint():
     ggp.resizable(False, False)  # 창 크기 조절 불가
 
     paint_window = Toplevel(ggp)
-    paint_window.title("잘그린기린 그림판")
+    paint_window.title("잘그린기린그림 그림판")
 
     canvas = Canvas(paint_window, width=800, height=500, bg='white')
     canvas.pack()
@@ -178,13 +178,13 @@ def activate_text_mode():
 
 
 # 도형 그리기 함수
-def shapeset_shape_mode():
+def set_shape_mode(shape):
     global shape_mode, text_mode, brush_mode, line_mode, current_shape
     shape_mode = True
     text_mode = False
     brush_mode = False
     line_mode = False
-    current_shape = shape
+    current_shape = shape  # 전달받은 인자를 current_shape에 저장
 
 
 # 브러시 점  모드 함수
