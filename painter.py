@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import filedialog, colorchooser, simpledialog, messagebox
-from PIL import Image, ImageTk, ImageDraw
+from PIL import Image, ImageTk, ImageDraw, ImageFilter
 
 # 전역 변수 정의
 start_x = None
@@ -12,6 +12,7 @@ current_shape = None
 brush_mode = True
 actions = []
 color_palette = None
+image = None
 canvas_img = None
 
 
@@ -119,6 +120,15 @@ def initialize_paint():
     text_button = Button(paint_window, text="텍스트 추가", command=activate_text_mode)
     text_button.pack(side=LEFT)
 
+    filter_button = Menubutton(paint_window, text="필터 선택", relief=RAISED)
+    filter_menu = Menu(filter_button, tearoff=0)
+    filter_menu.add_command(label="흑백", command=apply_grayscale_filter)
+    filter_menu.add_command(label="블러", command=apply_blur_filter)
+    filter_menu.add_command(label="경계 강조", command=apply_edge_filter)
+    filter_button.pack(side=LEFT)
+    filter_button.config(menu=filter_menu)
+
+
     image = Image.new("RGB", (800, 500), 'white')
     draw = ImageDraw.Draw(image)
     # 바인딩
@@ -203,6 +213,32 @@ def activate_line_mode():
     text_mode = False
     brush_mode = False
     line_mode = True
+
+ # filter 함수
+def apply_grayscale_filter():
+    global image, canvas
+    # 흑백 필터 적용
+    filtered_image = image.convert("L").convert("RGB")
+    update_canvas(filtered_image)
+
+def apply_blur_filter():
+    global image, canvas
+    # 블러 필터 적용
+    filtered_image = image.filter(ImageFilter.BLUR)
+    update_canvas(filtered_image)
+
+def apply_edge_filter():
+    global image, canvas
+    # 경계 강조 필터 적용
+    filtered_image = image.filter(ImageFilter.FIND_EDGES)
+    update_canvas(filtered_image)
+
+#캔버스업데이트
+def update_canvas(new_image):
+    global image, canvas_img
+    image.paste(new_image)
+    canvas_img = ImageTk.PhotoImage(image)
+    canvas.create_image(0, 0, image=canvas_img, anchor=NW)
 
 
 # 리셋 함수
